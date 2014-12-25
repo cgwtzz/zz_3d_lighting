@@ -102,10 +102,11 @@ public class ParticleSystem {
     }
 
     public void draw(float[] drawUseTime) {
+   
         float drawStrartTime = System.nanoTime();
         glDrawArrays(GL_POINTS, 0, currentParticleCount);
         float drawEendTime = System.nanoTime();
-        drawUseTime[0] = (float)(drawEendTime - drawStrartTime);
+        drawUseTime[0] = (drawEendTime - drawStrartTime)/ 1000000000f;
         
         //return drawUseTime;
     }

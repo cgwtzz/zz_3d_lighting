@@ -100,7 +100,12 @@ public class ParticlesRenderer implements Renderer {
     private ParticleShooter greenParticleShooter;
     private ParticleShooter blueParticleShooter;     
 
-    private long globalStartTime;    
+    private long globalStartTime; //ns
+    private float lastOndrawFrameTime; //s
+    private float frameUsedTime; //s
+    private int fps;
+    private int firstOnDrawFrame;
+    
     private int particleTexture;
     private int skyboxTexture;
     
@@ -158,6 +163,10 @@ public class ParticlesRenderer implements Renderer {
         particleProgram = new ParticleShaderProgram(context);        
         particleSystem = new ParticleSystem(10000);        
         globalStartTime = System.nanoTime();
+        lastOndrawFrameTime = globalStartTime / 1000000000f;
+        frameUsedTime = 0;
+        fps = 0;
+        firstOnDrawFrame = 1;
         
         final Vector particleDirection = new Vector(0f, 0.5f, 0f);              
         final float angleVarianceInDegrees = 5f; 
@@ -207,14 +216,42 @@ public class ParticlesRenderer implements Renderer {
 
     @Override    
     public void onDrawFrame(GL10 glUnused) {
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);                
-                        
+        float thisdrawStartTime = (System.nanoTime() - globalStartTime) / 1000000000f;
+        lastOndrawFrameTime = thisdrawStartTime;
+        
+        float toLastFrmeTime = thisdrawStartTime - lastOndrawFrameTime;
+        if(firstOnDrawFrame == 1){
+            toLastFrmeTime = 0; 
+        }
+        firstOnDrawFrame = 0;
+        frameUsedTime += toLastFrmeTime;
+        if(frameUsedTime > 60){
+            frameUsedTime = 0;
+            Log.i("GLFramePerSecond","fps:" + fps );
+            fps = 0;
+        }
+        else if((frameUsedTime > 0) && (frameUsedTime <= 60)){
+            fps += 1;
+            Log.i("GLFramePerSecond","toLastFrmeTime:" + toLastFrmeTime );
+        }
+        else {
+            Log.w("GLFramePerSecond","toLastFrmeTime is negative number:" + toLastFrmeTime );
+        }
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  
+        
+        
         drawHeightmap();
         drawSkybox();        
         drawParticles();
+        
+        float thisdrawEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
+        float drawUsedTime = thisdrawEndTime - thisdrawStartTime;
+        Log.i("GLFrameDraw","drawUsedTime:" + drawUsedTime );
+        
     }
 
     private void drawHeightmap() {
+        float thisHeightMapStartTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         setIdentityM(modelMatrix, 0);  
         
         // Expand the heightmap's dimensions, but don't expand the height as
@@ -239,10 +276,13 @@ public class ParticlesRenderer implements Renderer {
             modelViewProjectionMatrix, vectorToLightInEyeSpace,
             pointPositionsInEyeSpace, pointLightColors);
         heightmap.bindData(heightmapProgram);
-        heightmap.draw(); 
+        heightmap.draw();
+        float thisHeightMapEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
+        Log.i("drawHeightmap","drawHeightmapUsedTime:" + (thisHeightMapEndTime - thisHeightMapStartTime ) );
     }
     
     private void drawSkybox() {   
+        float thisSkyboxStartTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         setIdentityM(modelMatrix, 0);
         updateMvpMatrixForSkybox();
                 
@@ -252,11 +292,14 @@ public class ParticlesRenderer implements Renderer {
         skybox.bindData(skyboxProgram);
         skybox.draw();
         glDepthFunc(GL_LESS);
+        
+        float thisSkyboxEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
+        Log.i("drawSkybox","drawSkyboxUsedTime:" + (thisSkyboxEndTime - thisSkyboxStartTime ) );
     }
    
     private void drawParticles() {        
         float currentTime = (System.nanoTime() - globalStartTime) / 1000000000f;
-        
+        float thisParticlesStartTime = currentTime;
         redParticleShooter.addParticles(particleSystem, currentTime, 1);
         greenParticleShooter.addParticles(particleSystem, currentTime, 1);              
         blueParticleShooter.addParticles(particleSystem, currentTime, 1);              
@@ -275,10 +318,12 @@ public class ParticlesRenderer implements Renderer {
      // Allocate a buffer.
         final float drawTime[] = new float[1];
         particleSystem.draw(drawTime); 
-        Log.i("ParticleSytemDrawTime", Float.toString(drawTime[0]));
+        Log.i("ParticleSytemDrawTime", "" + Float.toString(drawTime[0]));
         
         glDisable(GL_BLEND);
         glDepthMask(true);
+        float thisParticlesEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
+        Log.i("drawParticles","drawParticlesUsedTime:" + (thisParticlesEndTime - thisParticlesStartTime ) );
     }
     
     /*
