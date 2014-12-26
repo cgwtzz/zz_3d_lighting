@@ -240,30 +240,31 @@ public class ParticlesRenderer implements Renderer {
 
     @Override    
     public void onDrawFrame(GL10 glUnused) {
-        float thisdrawStartTime = (System.nanoTime() - globalStartTime) / 1000000000f;
+        float thisdrawStartTime = (System.nanoTime() - globalStartTime) / 1000000000f;        
+        float toLastFrmeTime = thisdrawStartTime - lastOndrawFrameTime;
         lastOndrawFrameTime = thisdrawStartTime;
         
-        float toLastFrmeTime = thisdrawStartTime - lastOndrawFrameTime;
         if(firstOnDrawFrame == 1){
             toLastFrmeTime = 0; 
+            firstOnDrawFrame = 0;
         }
-        firstOnDrawFrame = 0;
+        
         frameUsedTime += toLastFrmeTime;
-        if(frameUsedTime > 60){
+        if(frameUsedTime >= 1){ //1s
             frameUsedTime = 0;
             Log.i("GLFramePerSecond","fps:" + fps );
             fps = 0;
         }
-        else if((frameUsedTime > 0) && (frameUsedTime <= 60)){
+        else if((frameUsedTime >= 0) && (frameUsedTime < 1)){
             fps += 1;
-            Log.i("GLFramePerSecond","toLastFrmeTime:" + toLastFrmeTime );
+            //Log.i("GLFramePerSecond","toLastFrmeTime:" + toLastFrmeTime );
         }
         else {
             Log.w("GLFramePerSecond","toLastFrmeTime is negative number:" + toLastFrmeTime );
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  
         
-        handleAutoRotation(6);// 6 * 60 = 360 degree.
+        handleAutoRotation(1);// 6 * (1 minute/0.02s) = 300 degree / minute.
         
         drawHeightmap();
         drawSkybox();        
@@ -271,7 +272,7 @@ public class ParticlesRenderer implements Renderer {
         
         float thisdrawEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         float drawUsedTime = thisdrawEndTime - thisdrawStartTime;
-        Log.i("GLFrameDraw","drawUsedTime:" + drawUsedTime );
+        Log.i("GLFrameDraw","drawOneFrameUsedTime:" + drawUsedTime );
         
     }
 
