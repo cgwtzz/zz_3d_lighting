@@ -128,6 +128,28 @@ public class ParticlesRenderer implements Renderer {
         // Setup view matrix
         updateViewMatrices();        
     }
+    public void handleAutoRotation(float rotateAngle) {
+        xRotation += rotateAngle;
+        
+        if (xRotation < -360) {
+            xRotation = -xRotation % 360;
+        } else if (xRotation > 360) {
+            xRotation = xRotation % 360;
+        } 
+        
+        // Setup view matrix
+        rotateViewMatrices(xRotation);        
+    }
+    private void rotateViewMatrices(float xRotation ) {      //instead of updateViewMatrices in auto rotate operation
+        setIdentityM(viewMatrix, 0);
+        //rotateM(viewMatrix, 0, -yRotation, 1f, 0f, 0f);
+        rotateM(viewMatrix, 0, -xRotation, 0f, 1f, 0f);
+        System.arraycopy(viewMatrix, 0, viewMatrixForSkybox, 0, viewMatrix.length);
+        
+        // We want the translation to apply to the regular view matrix, and not
+        // the skybox.
+        translateM(viewMatrix, 0, 0, -1.5f, -5f);
+    }
     
     private void updateViewMatrices() {        
         setIdentityM(viewMatrix, 0);
@@ -203,6 +225,8 @@ public class ParticlesRenderer implements Renderer {
         new int[] { R.drawable.night_left, R.drawable.night_right,
                     R.drawable.night_bottom, R.drawable.night_top, 
                     R.drawable.night_front, R.drawable.night_back});
+        
+        
     }
 
     @Override
@@ -239,6 +263,7 @@ public class ParticlesRenderer implements Renderer {
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  
         
+        handleAutoRotation(6);// 6 * 60 = 360 degree.
         
         drawHeightmap();
         drawSkybox();        
@@ -285,6 +310,7 @@ public class ParticlesRenderer implements Renderer {
         float thisSkyboxStartTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         setIdentityM(modelMatrix, 0);
         updateMvpMatrixForSkybox();
+        //rotateM();
                 
         glDepthFunc(GL_LEQUAL); // This avoids problems with the skybox itself getting clipped.
         skyboxProgram.useProgram();
@@ -292,6 +318,7 @@ public class ParticlesRenderer implements Renderer {
         skybox.bindData(skyboxProgram);
         skybox.draw();
         glDepthFunc(GL_LESS);
+        
         
         float thisSkyboxEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         Log.i("drawSkybox","drawSkyboxUsedTime:" + (thisSkyboxEndTime - thisSkyboxStartTime ) );
