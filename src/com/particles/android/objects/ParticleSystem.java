@@ -51,12 +51,13 @@ public class ParticleSystem {
         final int particleOffset = nextParticle * TOTAL_COMPONENT_COUNT;
         int currentOffset = particleOffset;        
         nextParticle++;
+        //currentParticleCount++;
         
-        if (currentParticleCount < maxParticleCount) {
-            currentParticleCount++;
+        if (currentParticleCount < maxParticleCount) {//for the particles need to be drawn
+            currentParticleCount++;                 //when reached the max,stop adding the draw number
         }
         
-        if (nextParticle == maxParticleCount) {
+        if (nextParticle >= maxParticleCount) {
             // Start over at the beginning, but keep currentParticleCount so
             // that all the other particles still get drawn.
             nextParticle = 0;

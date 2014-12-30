@@ -146,9 +146,20 @@ public class ParticlesRenderer implements Renderer {
         rotateM(viewMatrix, 0, -xRotation, 0f, 1f, 0f);
         System.arraycopy(viewMatrix, 0, viewMatrixForSkybox, 0, viewMatrix.length);
         
+     // This helps us figure out the vector for the sun or the moon in skybox.        
+        final float[] tempVec = {0f, 0f, -1f, 1f};
+        final float[] tempVec2 = new float[4];
+        
+        Matrix.multiplyMV(tempVec2, 0, viewMatrixForSkybox, 0, tempVec, 0);
+        Log.i("ParticleSytem", Arrays.toString(tempVec2));
+        
+        //reset viewMatrix for heightmap and particles.
+        setIdentityM(viewMatrix, 0);
         // We want the translation to apply to the regular view matrix, and not
         // the skybox.
-        translateM(viewMatrix, 0, 0, -1.5f, -5f);
+        translateM(viewMatrix, 0, 0, -1.0f, -5f);
+        rotateM(viewMatrix, 0, -xRotation, 0f, 1f, 0f);
+       
     }
     
     private void updateViewMatrices() {        
@@ -183,34 +194,36 @@ public class ParticlesRenderer implements Renderer {
         skybox = new Skybox();      
         
         particleProgram = new ParticleShaderProgram(context);        
-        particleSystem = new ParticleSystem(10000);        
+        particleSystem = new ParticleSystem(1000000);  //means the size of particles array.:1M*4B(float)     
         globalStartTime = System.nanoTime();
         lastOndrawFrameTime = globalStartTime / 1000000000f;
         frameUsedTime = 0;
         fps = 0;
         firstOnDrawFrame = 1;
         
-        final Vector particleDirection = new Vector(0f, 0.5f, 0f);              
+        final Vector particleDirection1 = new Vector(0.15f, 1.0f, 0f);
+        final Vector particleDirection2 = new Vector(0f, 1.0f, 0f); 
+        final Vector particleDirection3 = new Vector(-0.15f, 1.0f, 0f); 
         final float angleVarianceInDegrees = 5f; 
-        final float speedVariance = 1f;
+        final float speedVariance = 1.5f;
             
         redParticleShooter = new ParticleShooter(
-            new Point(-1f, 0f, 0f), 
-            particleDirection,                
+            new Point(-1.5f, 0f, 0f), 
+            particleDirection1,                
             Color.rgb(255, 50, 5),            
             angleVarianceInDegrees, 
             speedVariance);
         
         greenParticleShooter = new ParticleShooter(
             new Point(0f, 0f, 0f), 
-            particleDirection,
+            particleDirection2,
             Color.rgb(25, 255, 25),            
             angleVarianceInDegrees, 
             speedVariance);
         
         blueParticleShooter = new ParticleShooter(
-            new Point(1f, 0f, 0f), 
-            particleDirection,
+            new Point(1.5f, 0f, 0f), 
+            particleDirection3,
             Color.rgb(5, 50, 255),            
             angleVarianceInDegrees, 
             speedVariance); 
@@ -257,14 +270,14 @@ public class ParticlesRenderer implements Renderer {
         }
         else if((frameUsedTime >= 0) && (frameUsedTime < 1)){
             fps += 1;
-            //Log.i("GLFramePerSecond","toLastFrmeTime:" + toLastFrmeTime );
+            Log.i("GLFramePerSecond","toLastFrmeTime:" + toLastFrmeTime );
         }
         else {
             Log.w("GLFramePerSecond","toLastFrmeTime is negative number:" + toLastFrmeTime );
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  
         
-        handleAutoRotation(1);// 6 * (1 minute/0.02s) = 300 degree / minute.
+        handleAutoRotation(0.2f);// 6 * (1 minute/0.02s) = 300 degree / minute.
         
         drawHeightmap();
         drawSkybox();        
@@ -272,7 +285,7 @@ public class ParticlesRenderer implements Renderer {
         
         float thisdrawEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         float drawUsedTime = thisdrawEndTime - thisdrawStartTime;
-        Log.i("GLFrameDraw","drawOneFrameUsedTime:" + drawUsedTime );
+       Log.i("GLFrameDraw","drawOneFrameUsedTime:" + drawUsedTime );
         
     }
 
@@ -328,11 +341,18 @@ public class ParticlesRenderer implements Renderer {
     private void drawParticles() {        
         float currentTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         float thisParticlesStartTime = currentTime;
-        redParticleShooter.addParticles(particleSystem, currentTime, 1);
-        greenParticleShooter.addParticles(particleSystem, currentTime, 1);              
-        blueParticleShooter.addParticles(particleSystem, currentTime, 1);              
+        redParticleShooter.addParticles(particleSystem, currentTime, 150);
+        greenParticleShooter.addParticles(particleSystem, currentTime, 80);              
+        blueParticleShooter.addParticles(particleSystem, currentTime, 150);              
         
         setIdentityM(modelMatrix, 0);
+        
+        //not rotate particles system themselfs
+        setIdentityM(viewMatrix, 0);
+        translateM(viewMatrix, 0, 0, -1.5f, -5f);
+       float tmpRotation = -2 * xRotation;
+       rotateM(viewMatrix, 0, -tmpRotation, 0f, 1f, 0f);
+        
         updateMvpMatrix();
         
         glDepthMask(false);

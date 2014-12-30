@@ -10,6 +10,7 @@ package com.particles.android.objects;
 
 import java.util.Random;
 
+import android.graphics.Color;
 import android.opengl.Matrix;
 
 import com.particles.android.util.Geometry.Point;
@@ -19,7 +20,7 @@ import com.particles.android.util.Geometry.Vector;
 
 public class ParticleShooter {       
     private final Point position;    
-    private final int color;    
+    private  int color;    
 
     private final float angleVariance;
     private final float speedVariance;    
@@ -46,25 +47,46 @@ public class ParticleShooter {
     }
 
     public void addParticles(ParticleSystem particleSystem, float currentTime, 
-        int count) {        
+        int count) {  
+        
+        float sameSpeedRandom = random.nextFloat();
+        float speedAdjustment = 1.0f;
+        int randomred = random.nextInt(255);
+        int randomgreen = random.nextInt(255);
+        int randomblue = random.nextInt(255);
+        
         for (int i = 0; i < count; i++) {            
             Matrix.setRotateEulerM(rotationMatrix, 0, 
                 (random.nextFloat() - 0.5f) * angleVariance, 
-                (random.nextFloat() - 0.5f) * angleVariance, 
+                (random.nextFloat() - 0.5f) * angleVariance, //can not fire to -y direction
                 (random.nextFloat() - 0.5f) * angleVariance);
             
             Matrix.multiplyMV(
                 resultVector, 0, 
                 rotationMatrix, 0, 
                 directionVector, 0);
-            
-            float speedAdjustment = 1f + random.nextFloat() * speedVariance;
-            
+            //normalize resultVerctor.
+            float rls = 1.0f / Matrix.length(resultVector[0], resultVector[1], resultVector[2]);
+            if(sameSpeedRandom > 0.1f){
+                                
+                 if(sameSpeedRandom > 0.3 ){
+                     //color = Color.rgb(randomred, randomgreen, randomblue)/15;
+                     speedAdjustment = 1.0f + random.nextFloat() * speedVariance * rls;                                  
+                      }
+                 else{
+                     speedAdjustment = 0.5f + random.nextFloat() * speedVariance * rls;
+                     //color = 0xFF000000;//black
+                     }
+            }else{
+           
+                speedAdjustment = random.nextFloat()  *speedVariance * rls + 1.2f ;
+                
+            }
             Vector thisDirection = new Vector(
                 resultVector[0] * speedAdjustment,
                 resultVector[1] * speedAdjustment,
                 resultVector[2] * speedAdjustment);        
-                
+
             particleSystem.addParticle(position, color, thisDirection, currentTime);
         }       
     }
