@@ -28,6 +28,7 @@ public class ParticleShaderProgram extends ShaderProgram {
     private final int uTextureUnitLocation;
     
     // Attribute locations
+    private final int aRotationMatrixLocation;
     private final int aPositionLocation;
     private final int aColorLocation;
     private final int aDirectionVectorLocation;
@@ -43,13 +44,16 @@ public class ParticleShaderProgram extends ShaderProgram {
         uTextureUnitLocation = glGetUniformLocation(program, U_TEXTURE_UNIT);
         
         // Retrieve attribute locations for the shader program.
+        
+        aRotationMatrixLocation = glGetAttribLocation(program, A_ROTATION_MATRIX);
         aPositionLocation = glGetAttribLocation(program, A_POSITION);
         aColorLocation = glGetAttribLocation(program, A_COLOR);
         aDirectionVectorLocation = glGetAttribLocation(program, A_DIRECTION_VECTOR);
         aParticleStartTimeLocation = glGetAttribLocation(program, A_PARTICLE_START_TIME);
     }
 
-    public void setUniforms(float[] matrix, float elapsedTime, int textureId) {
+    public void setUniforms(float[] matrix,float[] rotationMatrix, float elapsedTime, int textureId) {
+        glUniformMatrix4fv(aRotationMatrixLocation, 1, false, rotationMatrix, 0);
         glUniformMatrix4fv(uMatrixLocation, 1, false, matrix, 0);
         glUniform1f(uTimeLocation, elapsedTime);        
         

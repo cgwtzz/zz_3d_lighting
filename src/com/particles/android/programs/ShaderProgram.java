@@ -36,7 +36,7 @@ abstract class ShaderProgram {
     
     protected static final String A_DIRECTION_VECTOR = "a_DirectionVector";
     protected static final String A_PARTICLE_START_TIME = "a_ParticleStartTime";
-
+    protected static final String A_ROTATION_MATRIX = "a_RotationMatrix"; 
     // Shader program
     protected final int program;
 

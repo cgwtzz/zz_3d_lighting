@@ -91,7 +91,22 @@ public class ParticlesActivity extends Activity {
                     if (event.getAction() == MotionEvent.ACTION_DOWN) {
                         previousX = event.getX();
                         previousY = event.getY();
-                    } else if (event.getAction() == MotionEvent.ACTION_MOVE) {
+                        glSurfaceView.queueEvent(new Runnable() {
+                            @Override
+                            public void run() {
+                                particlesRenderer.handleTouchDown();
+                            }
+                        });
+                    } 
+                    else if(event.getAction() == MotionEvent.ACTION_UP){
+                        glSurfaceView.queueEvent(new Runnable() {
+                            @Override
+                            public void run() {
+                                particlesRenderer.handleTouchUp();
+                            }
+                        });
+                    }
+                    else if (event.getAction() == MotionEvent.ACTION_MOVE) {
                         final float deltaX = event.getX() - previousX;
                         final float deltaY = event.getY() - previousY;
                         

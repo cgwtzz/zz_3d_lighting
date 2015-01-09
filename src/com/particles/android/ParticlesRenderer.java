@@ -60,6 +60,7 @@ import com.particles.android.util.TextureHelper;
 public class ParticlesRenderer implements Renderer {    
     private final Context context;
 
+    private final float[] rotationMatrix = new float[16];
     private final float[] modelMatrix = new float[16];
     private final float[] viewMatrix = new float[16];
     private final float[] viewMatrixForSkybox = new float[16];
@@ -102,6 +103,7 @@ public class ParticlesRenderer implements Renderer {
 
     private long globalStartTime; //ns
     private float lastOndrawFrameTime; //s
+    private float stopTime; //s
     private float frameUsedTime; //s
     private int fps;
     private int firstOnDrawFrame;
@@ -109,12 +111,21 @@ public class ParticlesRenderer implements Renderer {
     private int particleTexture;
     private int skyboxTexture;
     
-    private float xRotation, yRotation;  
-
+    private float xRotation, yRotation; 
+    private int touchFlag ;
+    //private float angle_incre;
+    private float FrameAngle;
+    private float FrameAngleStep;
     public ParticlesRenderer(Context context) {
         this.context = context;
     }
 
+    public void handleTouchUp() {
+        touchFlag = 0;
+    }
+    public void handleTouchDown() {
+        touchFlag = 1;
+    }
     public void handleTouchDrag(float deltaX, float deltaY) {
         xRotation += deltaX / 16f;
         yRotation += deltaY / 16f;
@@ -123,8 +134,7 @@ public class ParticlesRenderer implements Renderer {
             yRotation = -90;
         } else if (yRotation > 90) {
             yRotation = 90;
-        } 
-        
+        }
         // Setup view matrix
         updateViewMatrices();        
     }
@@ -159,6 +169,7 @@ public class ParticlesRenderer implements Renderer {
         // the skybox.
         translateM(viewMatrix, 0, 0, -1.0f, -5f);
         rotateM(viewMatrix, 0, -xRotation, 0f, 1f, 0f);
+        
        
     }
     
@@ -186,7 +197,7 @@ public class ParticlesRenderer implements Renderer {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_CULL_FACE);
         
-        heightmapProgram = new HeightmapShaderProgram(context);
+        heightmapProgram = new HeightmapShaderProgram(context);//new once,using it as many times as need
         heightmap = new Heightmap(((BitmapDrawable)context.getResources()
             .getDrawable(R.drawable.heightmap)).getBitmap());
         
@@ -194,21 +205,23 @@ public class ParticlesRenderer implements Renderer {
         skybox = new Skybox();      
         
         particleProgram = new ParticleShaderProgram(context);        
-        particleSystem = new ParticleSystem(1000000);  //means the size of particles array.:1M*4B(float)     
+        particleSystem = new ParticleSystem(100000);  //means the size of particles array.:1M*4B(float)     
         globalStartTime = System.nanoTime();
         lastOndrawFrameTime = globalStartTime / 1000000000f;
         frameUsedTime = 0;
         fps = 0;
         firstOnDrawFrame = 1;
+        //angle_incre = -180;
+        FrameAngleStep = 5;//just for particles .
         
         final Vector particleDirection1 = new Vector(0.15f, 1.0f, 0f);
-        final Vector particleDirection2 = new Vector(0f, 1.0f, 0f); 
+        final Vector particleDirection2 = new Vector(0.35f, 1.0f, 0f); 
         final Vector particleDirection3 = new Vector(-0.15f, 1.0f, 0f); 
-        final float angleVarianceInDegrees = 5f; 
-        final float speedVariance = 1.5f;
+        final float angleVarianceInDegrees = 15f; 
+        float speedVariance = 1.0f;
             
         redParticleShooter = new ParticleShooter(
-            new Point(-1.5f, 0f, 0f), 
+            new Point(-2.5f, 0f, 0f), 
             particleDirection1,                
             Color.rgb(255, 50, 5),            
             angleVarianceInDegrees, 
@@ -217,7 +230,8 @@ public class ParticlesRenderer implements Renderer {
         greenParticleShooter = new ParticleShooter(
             new Point(0f, 0f, 0f), 
             particleDirection2,
-            Color.rgb(25, 255, 25),            
+           // Color.rgb(25, 255, 25),
+            Color.rgb(255, 215, 0),
             angleVarianceInDegrees, 
             speedVariance);
         
@@ -277,11 +291,19 @@ public class ParticlesRenderer implements Renderer {
         }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);  
         
-        handleAutoRotation(0.2f);// 6 * (1 minute/0.02s) = 300 degree / minute.
+       handleAutoRotation(0.2f);// 6 * (1 minute/0.02s) = 300 degree / minute.
         
         drawHeightmap();
-        drawSkybox();        
-        drawParticles();
+       drawSkybox();        
+       // drawParticles();
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+       // drawParticles(redParticleShooter,150);
+       // glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+        drawParticles(greenParticleShooter,100);
+        //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); 
+        //drawParticles(blueParticleShooter,1);
+        //greenParticleShooter.addParticles(particleSystem, currentTime, 50);              
+        //blueParticleShooter.addParticles(particleSystem, currentTime, 150);  
         
         float thisdrawEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         float drawUsedTime = thisdrawEndTime - thisdrawStartTime;
@@ -292,6 +314,9 @@ public class ParticlesRenderer implements Renderer {
     private void drawHeightmap() {
         float thisHeightMapStartTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         setIdentityM(modelMatrix, 0);  
+        
+        setIdentityM(viewMatrix, 0);
+        translateM(viewMatrix, 0, 0, -1.5f, -5f);
         
         // Expand the heightmap's dimensions, but don't expand the height as
         // much so that we don't get insanely tall mountains.        
@@ -338,29 +363,52 @@ public class ParticlesRenderer implements Renderer {
         Log.i("drawSkybox","drawSkyboxUsedTime:" + (thisSkyboxEndTime - thisSkyboxStartTime ) );
     }
    
-    private void drawParticles() {        
-        float currentTime = (System.nanoTime() - globalStartTime) / 1000000000f;
-        float thisParticlesStartTime = currentTime;
-        redParticleShooter.addParticles(particleSystem, currentTime, 150);
-        greenParticleShooter.addParticles(particleSystem, currentTime, 80);              
-        blueParticleShooter.addParticles(particleSystem, currentTime, 150);              
-        
-        setIdentityM(modelMatrix, 0);
-        
-        //not rotate particles system themselfs
+    private void drawParticles(ParticleShooter particleShooter,int num ) {        
+        float thisParticlesStartTime = (System.nanoTime() - globalStartTime) / 1000000000f;
+        float currentTime = thisParticlesStartTime;
+        if(touchFlag == 0){//means when touch happened,stop update the stoptime.
+            stopTime = currentTime;
+        }
+                     
+    
+        //not rotate particles system themselfs       
         setIdentityM(viewMatrix, 0);
         translateM(viewMatrix, 0, 0, -1.5f, -5f);
-       float tmpRotation = -2 * xRotation;
-       rotateM(viewMatrix, 0, -tmpRotation, 0f, 1f, 0f);
-        
+      // float tmpRotation = -80 * xRotation;     
+       //rotateM(viewMatrix, 0, -tmpRotation, 0f, 1f, 0f);
+       
+       setIdentityM(modelMatrix, 0);
+       
+       //setIdentityM(rotationMatrix, 0);
+       if(particleShooter.position.x == 0){//
+           
+           //float centerRotation = -60 * xRotation; 
+           //rotateM(modelMatrix, 0, -centerRotation, 0f, 1f, 0f);
+           
+           if (FrameAngle >= 360) {
+               FrameAngle = FrameAngle%360 ;
+           }else {
+               FrameAngle += FrameAngleStep;
+           }
+
+       } 
         updateMvpMatrix();
+        
+        if(touchFlag == 0) {//when touch , stop add new points.
+            
+            particleShooter.addParticles(particleSystem, currentTime, num,FrameAngle, FrameAngleStep);
+        }else {
+            currentTime = stopTime;
+        }
+        // greenParticleShooter.addParticles(particleSystem, currentTime, 50);              
+         //blueParticleShooter.addParticles(particleSystem, currentTime, 150);
         
         glDepthMask(false);
         glEnable(GL_BLEND);
         glBlendFunc(GL_ONE, GL_ONE);
         
         particleProgram.useProgram();
-        particleProgram.setUniforms(modelViewProjectionMatrix, currentTime, particleTexture);
+        particleProgram.setUniforms(modelViewProjectionMatrix,rotationMatrix, currentTime, particleTexture);
         particleSystem.bindData(particleProgram);
         
      // Allocate a buffer.
@@ -370,6 +418,7 @@ public class ParticlesRenderer implements Renderer {
         
         glDisable(GL_BLEND);
         glDepthMask(true);
+        
         float thisParticlesEndTime = (System.nanoTime() - globalStartTime) / 1000000000f;
         Log.i("drawParticles","drawParticlesUsedTime:" + (thisParticlesEndTime - thisParticlesStartTime ) );
     }
@@ -382,12 +431,13 @@ public class ParticlesRenderer implements Renderer {
     */
     
     private void updateMvpMatrix() {
+       // multiplyMM(tempMatrix, 0, rotationMatrix, 0, modelMatrix, 0);
         multiplyMM(modelViewMatrix, 0, viewMatrix, 0, modelMatrix, 0);
         invertM(tempMatrix, 0, modelViewMatrix, 0);
         transposeM(it_modelViewMatrix, 0, tempMatrix, 0);        
         multiplyMM(
             modelViewProjectionMatrix, 0, 
-            projectionMatrix, 0, 
+            projectionMatrix, 0,
             modelViewMatrix, 0);
     }
         

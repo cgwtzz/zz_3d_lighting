@@ -5,9 +5,11 @@ attribute vec3 a_Position;
 attribute vec3 a_Color;
 attribute vec3 a_DirectionVector;
 attribute float a_ParticleStartTime;
+attribute mat4 a_RotationMatrix;
 
 varying vec3 v_Color;
 varying float v_ElapsedTime;
+
 
 void main()                    
 {                                	  	  
